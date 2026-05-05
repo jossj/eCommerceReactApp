@@ -127,7 +127,7 @@ export default function LoginPage() {
 
           {mode === 'login' && (
             <p className="text-xs text-gray-400">
-              Demo accounts: bob@example.com / password123
+              Demo accounts: bob@example.com, carol@example.com, alice@example.com
             </p>
           )}
 
