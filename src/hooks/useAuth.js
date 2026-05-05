@@ -24,13 +24,7 @@ export function useAuth() {
   }
 
   const loginMutation = useMutation({
-    mutationFn: async ({ email, password }) => {
-      const fetchedUser = await getUserByEmail(email)
-      if (fetchedUser.password !== password) {
-        throw new Error('Invalid email or password')
-      }
-      return fetchedUser
-    },
+    mutationFn: ({ email }) => getUserByEmail(email),
     onSuccess: async (fetchedUser) => {
       storeLogin(fetchedUser)
       await mergeLocalCartToBackend(fetchedUser.id)
