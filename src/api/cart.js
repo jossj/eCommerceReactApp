@@ -1,19 +1,16 @@
 import api from './axios'
 
-export const getCartByUser = (userId) =>
+export const getCart = (userId) =>
   api.get(`/cart/user/${userId}`).then((r) => r.data)
 
-export const createCart = (userId) =>
-  api.post('/cart', { userId }).then((r) => r.data)
+export const addItemToCart = (userId, item) =>
+  api.post(`/cart/user/${userId}/items`, item).then((r) => r.data)
 
-export const getCartItems = (cartId) =>
-  api.get(`/cartitems/cart/${cartId}`).then((r) => r.data)
+export const updateCartItem = (userId, itemId, quantity) =>
+  api.put(`/cart/user/${userId}/items/${itemId}`, null, { params: { quantity } }).then((r) => r.data)
 
-export const addCartItem = (item) =>
-  api.post('/cartitems', item).then((r) => r.data)
+export const removeCartItem = (userId, itemId) =>
+  api.delete(`/cart/user/${userId}/items/${itemId}`).then((r) => r.data)
 
-export const updateCartItem = (id, item) =>
-  api.put(`/cartitems/${id}`, item).then((r) => r.data)
-
-export const removeCartItem = (id) =>
-  api.delete(`/cartitems/${id}`).then((r) => r.data)
+export const clearUserCart = (userId) =>
+  api.delete(`/cart/user/${userId}/clear`).then((r) => r.data)

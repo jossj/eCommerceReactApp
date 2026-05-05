@@ -1,10 +1,9 @@
 import api from './axios'
 
-export const createOrder = (order) =>
-  api.post('/orders', order).then((r) => r.data)
-
-export const addOrderItem = (item) =>
-  api.post('/orderitems', item).then((r) => r.data)
+export const createOrderFromCart = (userId, shippingAddress) =>
+  api
+    .post(`/orders/from-cart/${userId}`, null, { params: { shippingAddress } })
+    .then((r) => r.data)
 
 export const getOrdersByUser = (userId) =>
   api.get(`/orders/user/${userId}`).then((r) => r.data)
