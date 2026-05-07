@@ -53,13 +53,13 @@ function ShippingForm({ value, onChange, onNext, onBack }) {
     <form onSubmit={(e) => { e.preventDefault(); onNext() }} className="space-y-4">
       <h2 className="text-xl font-bold text-gray-900 mb-2">Shipping Address</h2>
       <p className="text-sm text-gray-500">
-        Enter your full address (e.g. 123 Main St, Springfield, IL 62701, USA)
+        Enter your full address including suburb, state and postcode (e.g. 42 Elm Street, Surry Hills NSW 2010)
       </p>
       <textarea
         required rows={3}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="123 Main St, Springfield, IL 62701, USA"
+        placeholder="42 Elm Street, Surry Hills NSW 2010"
         className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none"
       />
       <div className="flex gap-3 pt-2">
@@ -92,7 +92,7 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
       const intent = await createPaymentIntent({
         orderId: order.id,
         paymentMethod: 'CREDIT_CARD',
-        currency: 'USD',
+        currency: 'AUD',
       })
 
       // Confirm client-side — card payments don't require a return_url.
