@@ -1,19 +1,16 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@tanstack/react-query'
+import { loadStripe } from '@stripe/stripe-js'
+import { Elements } from '@stripe/react-stripe-js'
 import { useCart } from '../hooks/useCart'
 import { useAuthStore } from '../stores/authStore'
 import { useCheckoutStore } from '../stores/checkoutStore'
 import { createOrderFromCart } from '../api/orders'
-import { processPayment } from '../api/payments'
+import { createPaymentIntent, confirmPaymentIntent } from '../api/payments'
 import CheckoutSteps from '../components/CheckoutSteps'
+import StripePaymentForm from '../components/StripePaymentForm'
 
-const PAYMENT_METHODS = [
-  { value: 'CREDIT_CARD', label: 'Credit Card' },
-  { value: 'DEBIT_CARD', label: 'Debit Card' },
-  { value: 'PAYPAL', label: 'PayPal' },
-  { value: 'BANK_TRANSFER', label: 'Bank Transfer' },
-  { value: 'CASH_ON_DELIVERY', label: 'Cash on Delivery' },
-]
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '')
 
 function CartReview({ items, totalPrice, onNext }) {
   return (
@@ -51,20 +48,14 @@ function CartReview({ items, totalPrice, onNext }) {
 }
 
 function ShippingForm({ value, onChange, onNext, onBack }) {
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onNext()
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Shipping Address</h2>
-      <p className="text-sm text-gray-500 -mt-2">
+    <form onSubmit={(e) => { e.preventDefault(); onNext() }} className="space-y-4">
+      <h2 className="text-xl font-bold text-gray-900 mb-2">Shipping Address</h2>
+      <p className="text-sm text-gray-500">
         Enter your full address (e.g. 123 Main St, Springfield, IL 62701, USA)
       </p>
       <textarea
-        required
-        rows={3}
+        required rows={3}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder="123 Main St, Springfield, IL 62701, USA"
@@ -84,88 +75,71 @@ function ShippingForm({ value, onChange, onNext, onBack }) {
   )
 }
 
-function PaymentForm({ paymentMethod, onChange, onBack, onPay, isLoading, error }) {
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    onPay()
+function PaymentStep({ shippingAddress, onBack, onSuccess }) {
+  const [processing, setProcessing] = useState(false)
+  const [error, setError] = useState(null)
+  const { items, totalPrice, clearCart } = useCart()
+  const { user } = useAuthStore()
+
+  const handlePay = async (paymentMethodId) => {
+    setProcessing(true)
+    setError(null)
+    try {
+      const order = await createOrderFromCart(user.id, shippingAddress)
+
+      const intent = await createPaymentIntent({
+        orderId: order.id,
+        paymentMethod: 'CREDIT_CARD',
+        currency: 'USD',
+      })
+
+      await confirmPaymentIntent(intent.paymentIntentId, paymentMethodId)
+
+      await clearCart()
+      onSuccess(order.id)
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Payment failed. Please try again.')
+      setProcessing(false)
+    }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Payment Method</h2>
-
-      <div className="space-y-3">
-        {PAYMENT_METHODS.map(({ value, label }) => (
-          <label
-            key={value}
-            className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-colors
-              ${paymentMethod === value ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
-          >
-            <input
-              type="radio"
-              name="paymentMethod"
-              value={value}
-              checked={paymentMethod === value}
-              onChange={(e) => onChange(e.target.value)}
-              className="accent-indigo-600 w-4 h-4"
-            />
-            <span className="font-medium text-gray-800">{label}</span>
-          </label>
-        ))}
-      </div>
-
+    <div className="space-y-4">
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">
-          {error.response?.data?.message || error.message || 'Payment failed. Please try again.'}
+          {error}
         </div>
       )}
-
-      <div className="flex gap-3 pt-2">
-        <button type="button" onClick={onBack} disabled={isLoading}
-          className="flex-1 min-h-[44px] py-3 border border-gray-300 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 disabled:opacity-50 transition-colors">
-          ← Back
-        </button>
-        <button type="submit" disabled={isLoading}
-          className="flex-1 min-h-[44px] py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors">
-          {isLoading ? 'Processing…' : '💳 Place Order'}
-        </button>
-      </div>
-    </form>
+      <StripePaymentForm
+        totalPrice={totalPrice}
+        onPay={handlePay}
+        onBack={onBack}
+        isProcessing={processing}
+      />
+    </div>
   )
 }
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { items, totalPrice, clearCart } = useCart()
-  const { user } = useAuthStore()
-  const {
-    step, shippingAddress, paymentMethod,
-    nextStep, prevStep,
-    setShippingAddress, setPaymentMethod, setOrderId,
-  } = useCheckoutStore()
+  const { items } = useCart()
+  const { step, shippingAddress, nextStep, prevStep, setShippingAddress, setOrderId } =
+    useCheckoutStore()
 
-  const payMutation = useMutation({
-    mutationFn: async () => {
-      const order = await createOrderFromCart(user.id, shippingAddress)
-      const payment = await processPayment({
-        orderId: order.id,
-        paymentMethod,
-        amount: order.totalAmount,
-        currency: 'USD',
-      })
-      return { order, payment }
-    },
-    onSuccess: async ({ order }) => {
-      setOrderId(order.id)
-      await clearCart()
-      nextStep()
-    },
-  })
+  const handlePaymentSuccess = (orderId) => {
+    setOrderId(orderId)
+    nextStep()
+  }
 
   if (items.length === 0 && step < 4) {
     navigate('/cart')
     return null
   }
+
+  const { totalPrice } = items.reduce(
+    (acc, i) => ({ totalPrice: acc.totalPrice + i.price * i.quantity }),
+    { totalPrice: 0 }
+  )
 
   return (
     <main className="max-w-2xl mx-auto px-4 py-8">
@@ -173,7 +147,11 @@ export default function CheckoutPage() {
 
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         {step === 1 && (
-          <CartReview items={items} totalPrice={totalPrice} onNext={nextStep} />
+          <CartReview
+            items={items}
+            totalPrice={items.reduce((s, i) => s + i.price * i.quantity, 0)}
+            onNext={nextStep}
+          />
         )}
 
         {step === 2 && (
@@ -186,22 +164,21 @@ export default function CheckoutPage() {
         )}
 
         {step === 3 && (
-          <PaymentForm
-            paymentMethod={paymentMethod}
-            onChange={setPaymentMethod}
-            onBack={prevStep}
-            onPay={() => payMutation.mutate()}
-            isLoading={payMutation.isPending}
-            error={payMutation.error}
-          />
+          <Elements stripe={stripePromise}>
+            <PaymentStep
+              shippingAddress={shippingAddress}
+              onBack={prevStep}
+              onSuccess={handlePaymentSuccess}
+            />
+          </Elements>
         )}
 
         {step === 4 && (
           <div className="text-center py-8">
             <div className="text-6xl mb-4">🎉</div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Order Confirmed!</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h2>
             <p className="text-gray-500 mb-6">
-              Thank you for your purchase. Your order has been placed successfully.
+              Your order has been placed and payment confirmed.
             </p>
             <button
               onClick={() => { useCheckoutStore.getState().reset(); navigate('/') }}

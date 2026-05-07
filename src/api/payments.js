@@ -1,6 +1,7 @@
 import api from './axios'
 
-// paymentData: { orderId, paymentMethod, amount, currency }
-// paymentMethod: CREDIT_CARD | DEBIT_CARD | PAYPAL | BANK_TRANSFER | CASH_ON_DELIVERY
-export const processPayment = (paymentData) =>
-  api.post('/payments', paymentData).then((r) => r.data)
+export const createPaymentIntent = (data) =>
+  api.post('/payments/intents', data).then((r) => r.data)
+
+export const confirmPaymentIntent = (intentId, paymentMethodId) =>
+  api.post(`/payments/intents/${intentId}/confirm`, { paymentMethodId }).then((r) => r.data)
