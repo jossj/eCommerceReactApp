@@ -5,6 +5,7 @@ export const useCheckoutStore = create((set) => ({
   shippingAddress: '',
   paymentMethod: 'CREDIT_CARD',
   orderId: null,
+  transactionId: null,
 
   nextStep: () => set((s) => ({ step: s.step + 1 })),
   prevStep: () => set((s) => ({ step: Math.max(1, s.step - 1) })),
@@ -12,5 +13,6 @@ export const useCheckoutStore = create((set) => ({
   setShippingAddress: (shippingAddress) => set({ shippingAddress }),
   setPaymentMethod: (paymentMethod) => set({ paymentMethod }),
   setOrderId: (orderId) => set({ orderId }),
-  reset: () => set({ step: 1, shippingAddress: '', paymentMethod: 'CREDIT_CARD', orderId: null }),
+  setTransactionId: (transactionId) => set({ transactionId }),
+  reset: () => set({ step: 1, shippingAddress: '', paymentMethod: 'CREDIT_CARD', orderId: null, transactionId: null }),
 }))
