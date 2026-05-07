@@ -17,6 +17,7 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
   const stripe = useStripe()
   const elements = useElements()
   const [cardError, setCardError] = useState(null)
+  const stripeReady = !!stripe
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -43,7 +44,7 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
           Credit or debit card
         </label>
         <div className="border border-gray-300 rounded-xl px-4 py-3.5 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-shadow">
-          <CardElement options={CARD_STYLE} onChange={(e) => e.error && setCardError(e.error.message)} />
+          <CardElement options={CARD_STYLE} onChange={(e) => setCardError(e.error?.message ?? null)} />
         </div>
         <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
           <span className="font-medium text-gray-600">Test card</span>
@@ -70,10 +71,11 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
         </button>
         <button
           type="submit"
-          disabled={!stripe || isProcessing}
-          className="flex-1 min-h-[44px] py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 transition-colors"
+          disabled={!stripeReady || isProcessing}
+          title={!stripeReady ? 'Stripe is not configured — set VITE_STRIPE_PUBLIC_KEY in .env.local' : undefined}
+          className="flex-1 min-h-[44px] py-3 bg-green-600 text-white rounded-xl font-semibold hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
-          {isProcessing ? 'Processing…' : `💳 Pay $${totalPrice.toFixed(2)}`}
+          {isProcessing ? 'Processing…' : !stripeReady ? 'Stripe not configured' : `💳 Pay $${totalPrice.toFixed(2)}`}
         </button>
       </div>
     </form>

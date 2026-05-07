@@ -10,7 +10,8 @@ import { createPaymentIntent, confirmPaymentIntent } from '../api/payments'
 import CheckoutSteps from '../components/CheckoutSteps'
 import StripePaymentForm from '../components/StripePaymentForm'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '')
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 function CartReview({ items, totalPrice, onNext }) {
   return (
