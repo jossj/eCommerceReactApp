@@ -104,7 +104,20 @@ All requests are proxied through Vite to the backend. Base path: `/api`.
 | `/cart/user/:userId/items/:itemId` | DELETE | Remove item |
 | `/cart/user/:userId/clear` | DELETE | Empty the cart |
 | `/orders/from-cart/:userId` | POST `?shippingAddress=...` | Create order from cart |
-| `/payments` | POST | Process payment |
+| `/payments/intents` | POST | Create Stripe PaymentIntent → `{ paymentIntentId, clientSecret, ... }` |
+| `/payments/intents/:id/confirm` | POST | Confirm payment with `{ paymentMethodId }` (server-side) |
+
+## Stripe Payment Flow
+
+```
+1. User fills card details (Stripe CardElement — never touches your server)
+2. stripe.createPaymentMethod()  →  paymentMethodId
+3. POST /api/orders/from-cart/{userId}  →  order
+4. POST /api/payments/intents  { orderId, paymentMethod, currency }  →  paymentIntentId
+5. POST /api/payments/intents/{id}/confirm  { paymentMethodId }  →  PaymentDTO
+```
+
+The backend confirms the PaymentIntent server-side using the Stripe secret key.
 
 ## Demo Accounts
 
@@ -118,10 +131,13 @@ These users are seeded by the backend on first run:
 
 ## Environment
 
-To point the app at a different backend URL, create a `.env.local` file:
+Create a `.env.local` file with your keys:
 
 ```
 VITE_API_BASE_URL=http://your-backend-host/api
+VITE_STRIPE_PUBLIC_KEY=pk_test_...
 ```
 
-And update `vite.config.js` proxy target accordingly.
+`VITE_STRIPE_PUBLIC_KEY` is the **publishable** key from your Stripe dashboard (starts with `pk_test_` or `pk_live_`). The backend uses the secret key (`sk_test_...`) configured via the `STRIPE_API_KEY` environment variable.
+
+Update `vite.config.js` proxy target if the backend runs on a different port.
