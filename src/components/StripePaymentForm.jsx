@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js'
 
 const CARD_STYLE = {
+  hidePostalCode: true,
   style: {
     base: {
       fontSize: '16px',
@@ -17,6 +18,7 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
   const stripe = useStripe()
   const elements = useElements()
   const [cardError, setCardError] = useState(null)
+  const [postcode, setPostcode] = useState('')
   const stripeReady = !!stripe
 
   const handleSubmit = async (e) => {
@@ -25,7 +27,13 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
 
     setCardError(null)
     const card = elements.getElement(CardElement)
-    const { error, paymentMethod } = await stripe.createPaymentMethod({ type: 'card', card })
+    const { error, paymentMethod } = await stripe.createPaymentMethod({
+      type: 'card',
+      card,
+      billing_details: {
+        address: { postal_code: postcode },
+      },
+    })
 
     if (error) {
       setCardError(error.message)
@@ -46,12 +54,32 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
         <div className="border border-gray-300 rounded-xl px-4 py-3.5 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-shadow">
           <CardElement options={CARD_STYLE} onChange={(e) => setCardError(e.error?.message ?? null)} />
         </div>
-        <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-          <span className="font-medium text-gray-600">Test card</span>
-          <span>Number: <span className="font-mono text-gray-700">4242 4242 4242 4242</span></span>
-          <span>Expiry: <span className="font-mono text-gray-700">12/26</span></span>
-          <span>CVC: <span className="font-mono text-gray-700">123</span></span>
-        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="postcode">
+          Postcode
+        </label>
+        <input
+          id="postcode"
+          type="text"
+          required
+          inputMode="numeric"
+          maxLength={4}
+          pattern="\d{4}"
+          value={postcode}
+          onChange={(e) => setPostcode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+          placeholder="2000"
+          className="w-full min-h-[44px] px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+        />
+      </div>
+
+      <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+        <span className="font-medium text-gray-600">Test card</span>
+        <span>Number: <span className="font-mono text-gray-700">4242 4242 4242 4242</span></span>
+        <span>Expiry: <span className="font-mono text-gray-700">12/26</span></span>
+        <span>CVC: <span className="font-mono text-gray-700">123</span></span>
+        <span>Postcode: <span className="font-mono text-gray-700">2000</span></span>
       </div>
 
       {cardError && (
