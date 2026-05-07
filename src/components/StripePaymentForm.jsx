@@ -45,7 +45,12 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
         <div className="border border-gray-300 rounded-xl px-4 py-3.5 bg-white focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-shadow">
           <CardElement options={CARD_STYLE} onChange={(e) => e.error && setCardError(e.error.message)} />
         </div>
-        <p className="text-xs text-gray-400 mt-1.5">Test card: 4242 4242 4242 4242 · any future date · any CVC</p>
+        <div className="mt-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+          <span className="font-medium text-gray-600">Test card</span>
+          <span>Number: <span className="font-mono text-gray-700">4242 4242 4242 4242</span></span>
+          <span>Expiry: <span className="font-mono text-gray-700">12/26</span></span>
+          <span>CVC: <span className="font-mono text-gray-700">123</span></span>
+        </div>
       </div>
 
       {cardError && (
