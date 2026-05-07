@@ -1,16 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { loadStripe } from '@stripe/stripe-js'
-import { Elements } from '@stripe/react-stripe-js'
+import { Elements, useStripe } from '@stripe/react-stripe-js'
 import { useCart } from '../hooks/useCart'
 import { useAuthStore } from '../stores/authStore'
 import { useCheckoutStore } from '../stores/checkoutStore'
 import { createOrderFromCart } from '../api/orders'
-import { createPaymentIntent, confirmPaymentIntent } from '../api/payments'
+import { createPaymentIntent } from '../api/payments'
 import CheckoutSteps from '../components/CheckoutSteps'
 import StripePaymentForm from '../components/StripePaymentForm'
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY || '')
+const stripeKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null
 
 function CartReview({ items, totalPrice, onNext }) {
   return (
@@ -78,8 +79,9 @@ function ShippingForm({ value, onChange, onNext, onBack }) {
 function PaymentStep({ shippingAddress, onBack, onSuccess }) {
   const [processing, setProcessing] = useState(false)
   const [error, setError] = useState(null)
-  const { items, totalPrice, clearCart } = useCart()
+  const { totalPrice, clearCart } = useCart()
   const { user } = useAuthStore()
+  const stripe = useStripe()
 
   const handlePay = async (paymentMethodId) => {
     setProcessing(true)
@@ -93,7 +95,24 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
         currency: 'USD',
       })
 
-      await confirmPaymentIntent(intent.paymentIntentId, paymentMethodId)
+      // Confirm client-side — card payments don't require a return_url.
+      // The backend webhook handles payment_intent.succeeded asynchronously.
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(
+        intent.clientSecret,
+        { payment_method: paymentMethodId }
+      )
+
+      if (stripeError) {
+        setError(stripeError.message)
+        setProcessing(false)
+        return
+      }
+
+      if (paymentIntent.status !== 'succeeded') {
+        setError(`Unexpected payment status: ${paymentIntent.status}. Please try again.`)
+        setProcessing(false)
+        return
+      }
 
       await clearCart()
       onSuccess(order.id)
