@@ -115,7 +115,7 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
       }
 
       await clearCart()
-      onSuccess(order.id)
+      onSuccess(order.id, paymentIntent.id)
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Payment failed. Please try again.')
       setProcessing(false)
@@ -142,11 +142,12 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
 export default function CheckoutPage() {
   const navigate = useNavigate()
   const { items } = useCart()
-  const { step, shippingAddress, nextStep, prevStep, setShippingAddress, setOrderId } =
+  const { step, shippingAddress, orderId, transactionId, nextStep, prevStep, setShippingAddress, setOrderId, setTransactionId } =
     useCheckoutStore()
 
-  const handlePaymentSuccess = (orderId) => {
+  const handlePaymentSuccess = (orderId, transactionId) => {
     setOrderId(orderId)
+    setTransactionId(transactionId)
     nextStep()
   }
 
@@ -199,12 +200,20 @@ export default function CheckoutPage() {
             <p className="text-gray-500 mb-6">
               Your order has been placed and payment confirmed.
             </p>
-            <button
-              onClick={() => { useCheckoutStore.getState().reset(); navigate('/') }}
-              className="min-h-[44px] px-8 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
-            >
-              Continue Shopping
-            </button>
+            {transactionId && (
+              <div className="mb-6 inline-block bg-gray-50 border border-gray-200 rounded-xl px-5 py-3 text-left">
+                <p className="text-xs text-gray-500 mb-1">Transaction ID</p>
+                <p className="font-mono text-sm text-gray-800 break-all">{transactionId}</p>
+              </div>
+            )}
+            <div>
+              <button
+                onClick={() => { useCheckoutStore.getState().reset(); navigate('/') }}
+                className="min-h-[44px] px-8 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         )}
       </div>
