@@ -114,8 +114,8 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
         return
       }
 
-      await clearCart()
       onSuccess(order.id, paymentIntent.id)
+      await clearCart()
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Payment failed. Please try again.')
       setProcessing(false)
