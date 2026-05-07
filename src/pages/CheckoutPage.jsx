@@ -92,7 +92,7 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
       const intent = await createPaymentIntent({
         orderId: order.id,
         paymentMethod: 'CREDIT_CARD',
-        currency: 'USD',
+        currency: 'AUD',
       })
 
       // Confirm client-side — card payments don't require a return_url.
