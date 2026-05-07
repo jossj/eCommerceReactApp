@@ -14,7 +14,7 @@ const CARD_STYLE = {
   },
 }
 
-export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcessing }) {
+export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcessing, userName, userEmail }) {
   const stripe = useStripe()
   const elements = useElements()
   const [cardError, setCardError] = useState(null)
@@ -31,6 +31,8 @@ export default function StripePaymentForm({ totalPrice, onPay, onBack, isProcess
       type: 'card',
       card,
       billing_details: {
+        name: userName,
+        email: userEmail,
         address: { postal_code: postcode },
       },
     })

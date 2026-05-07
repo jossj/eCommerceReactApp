@@ -134,6 +134,8 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
         onPay={handlePay}
         onBack={onBack}
         isProcessing={processing}
+        userName={`${user.firstName} ${user.lastName}`}
+        userEmail={user.email}
       />
     </div>
   )
