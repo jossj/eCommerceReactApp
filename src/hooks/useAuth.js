@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
-import { getUserByEmail, register as registerApi } from '../api/auth'
+import { login as loginApi, register as registerApi } from '../api/auth'
 import { addItemToCart } from '../api/cart'
 
 export function useAuth() {
@@ -24,10 +24,11 @@ export function useAuth() {
   }
 
   const loginMutation = useMutation({
-    mutationFn: ({ email }) => getUserByEmail(email),
-    onSuccess: async (fetchedUser) => {
-      storeLogin(fetchedUser)
-      await mergeLocalCartToBackend(fetchedUser.id)
+    mutationFn: loginApi,
+    onSuccess: async (data) => {
+      const { token, ...userFields } = data
+      storeLogin(userFields, token)
+      await mergeLocalCartToBackend(userFields.id)
       const from = location.state?.from || '/'
       navigate(from)
     },
@@ -35,9 +36,10 @@ export function useAuth() {
 
   const registerMutation = useMutation({
     mutationFn: registerApi,
-    onSuccess: async (newUser) => {
-      storeLogin(newUser)
-      await mergeLocalCartToBackend(newUser.id)
+    onSuccess: async (data) => {
+      const { token, ...userFields } = data
+      storeLogin(userFields, token)
+      await mergeLocalCartToBackend(userFields.id)
       navigate('/')
     },
   })
