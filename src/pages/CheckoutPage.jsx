@@ -6,7 +6,7 @@ import { useCart } from '../hooks/useCart'
 import { useAuthStore } from '../stores/authStore'
 import { useCheckoutStore } from '../stores/checkoutStore'
 import { createOrderFromCart } from '../api/orders'
-import { createPaymentIntent } from '../api/payments'
+import { createPaymentIntent, confirmPaymentIntent } from '../api/payments'
 import CheckoutSteps from '../components/CheckoutSteps'
 import StripePaymentForm from '../components/StripePaymentForm'
 
@@ -113,7 +113,10 @@ function PaymentStep({ shippingAddress, onBack, onSuccess }) {
         setProcessing(false)
         return
       }
-
+      // Sync order status to CONFIRMED on the backend immediately.
+      // This is the reliable path — the webhook is an async backup.
+      await confirmPaymentIntent(paymentIntent.id, null)
+      
       onSuccess(order.id, paymentIntent.id)
       await clearCart()
     } catch (err) {
