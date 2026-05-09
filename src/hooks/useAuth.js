@@ -2,11 +2,11 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '../stores/authStore'
 import { useCartStore } from '../stores/cartStore'
-import { login as loginApi, register as registerApi } from '../api/auth'
+import { login as loginApi, register as registerApi, getUserById } from '../api/auth'
 import { addItemToCart } from '../api/cart'
 
 export function useAuth() {
-  const { user, isAuthenticated, login: storeLogin, logout: storeLogout } = useAuthStore()
+  const { user, isAuthenticated, login: storeLogin, logout: storeLogout, setUser } = useAuthStore()
   const clearCart = useCartStore((s) => s.clearCart)
   const navigate = useNavigate()
   const location = useLocation()
@@ -25,10 +25,13 @@ export function useAuth() {
 
   const loginMutation = useMutation({
     mutationFn: loginApi,
-    onSuccess: async (data) => {
-      const { token, ...userFields } = data
-      storeLogin(userFields, token)
-      await mergeLocalCartToBackend(userFields.id)
+    onSuccess: async ({ token, userId, email, role }) => {
+      // Store minimal user + token immediately so authenticated requests work
+      storeLogin({ id: userId, email, role }, token)
+      // Fetch full profile (firstName, lastName, etc.) now that the token is active
+      const fullUser = await getUserById(userId)
+      setUser(fullUser)
+      await mergeLocalCartToBackend(userId)
       const from = location.state?.from || '/'
       navigate(from)
     },
@@ -36,10 +39,11 @@ export function useAuth() {
 
   const registerMutation = useMutation({
     mutationFn: registerApi,
-    onSuccess: async (data) => {
-      const { token, ...userFields } = data
-      storeLogin(userFields, token)
-      await mergeLocalCartToBackend(userFields.id)
+    onSuccess: async ({ token, userId, email, role }) => {
+      storeLogin({ id: userId, email, role }, token)
+      const fullUser = await getUserById(userId)
+      setUser(fullUser)
+      await mergeLocalCartToBackend(userId)
       navigate('/')
     },
   })
