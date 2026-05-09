@@ -5,3 +5,6 @@ export const login = ({ email, password }) =>
 
 export const register = (userData) =>
   api.post('/auth/register', userData).then((r) => r.data)
+
+export const getUserById = (id) =>
+  api.get(`/users/${id}`).then((r) => r.data)
